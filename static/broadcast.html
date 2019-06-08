@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>WebRTC Mixer Demo</title>
+    <link href="css/broadcast.css" rel="stylesheet">
+  </head>
+
+  <body>
+    <div class="base-container">
+      <div class="video-container">
+        <video src="bbb_360p.mp4" autoplay loop></video>
+      </div>
+      <div class="video-container">
+        <video src="bbb_360p.mp4" autoplay loop></video>
+      </div>
+    </div>
+    <div class="overlay-container">
+      <div class="flex-padding"></div>
+      <div class="intros-container">
+        <div id="intros-1" class="speaker_intro animated fadeInLeft delay-1s">
+          <p class="speaker_name">Alice Talkhead</p>
+          <p>Really cool speaker</p>
+        </div>
+        <div class="flex-padding"></div>
+        <div id="intros-2" class="speaker_intro animated fadeInRight delay-1s">
+          <p class="speaker_name">Bob Loblaw</p>
+          <p>Runs Bob Loblaw's Law Blog</p>
+        </div>
+      </div>
+
+      <div class="flex-small-padding"></div>
+
+      <div class="ticker-wrap">
+        <div class="ticker">
+          <div class="ticker-item">Kitten thinks of nothing but murder all day.</div>
+          <div class="ticker-item">Perky ‘Canada’ has own government, laws.</div>
+          <div class="ticker-item">Winner Didn’t Even Know It Was Pie-Eating Contest.</div>
+          <div class="ticker-item">BREAKING: WebRTC is pretty cool.</div>
+          <div class="ticker-item">Pop Culture Expert Surprisingly Not Ashamed of Self.</div>
+          <div class="ticker-item">I wish this ticker looped more gracefully, but it just doesn't.</div>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+
+    <script type="text/javascript">
+      $(".animated").addClass("delay-1s");
+
+      setInterval(function () {
+        $("#intros-1").removeClass("fadeInLeft").addClass("fadeOutLeft");
+        setTimeout(function () {
+          $("#intros-1").removeClass("fadeOutLeft").addClass("fadeInLeft");
+        }, 2500);
+      }, 7500);
+
+      setInterval(function () {
+        $("#intros-2").removeClass("fadeInRight").addClass("fadeOutRight");
+        setTimeout(function () {
+          $("#intros-2").removeClass("fadeOutRight").addClass("fadeInRight");
+        }, 3500);
+      }, 8500);
+    </script>
+  </body>
+
+</html>
