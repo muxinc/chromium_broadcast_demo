@@ -1,24 +1,39 @@
 #!/usr/bin/env python3
 from flask import Flask, send_from_directory
 from flask_sockets import Sockets
+import json
 
 app = Flask(__name__)
 sockets = Sockets(app)
 
 clients = []
+server = None
 
 @sockets.route('/echo')
 def echo_socket(ws):
     print("Hey cool a client")
-    clients.append(ws)
     while not ws.closed:
-        message = ws.receive()
-        for client in clients:
-            if client is not ws:
-                try:
-                    client.send(message)
-                except:
-                    print("Found a dead client")
+        msgStr = ws.receive()
+        try:
+            msg = json.loads(msgStr)
+            if msg["type"] == "server_hello":
+                server = ws
+            elif msg["type"] == "client_hello":
+                clients.append(ws)
+            elif msg["target"] == "server":
+                if server is not None:
+                    server.send(msgStr)
+                else:
+                    print("Warning: received a client message without a server")
+            else:
+                for client in clients:    
+                    if client is not ws:
+                        try:
+                            client.send(msgStr)
+                        except:
+                            print("Error: Failed to send message to client")
+        except Exception as ex:
+            print("Error parsing message: ", msgStr, ex)
 
     clients.remove(ws)
 

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Websocket Echo Test</title>
+    </head>
+    <body>
+        <h2>Chat test</h2>
+        <div>
+            <label for="username">Username
+                <input type="text" id="username"/>
+            </label>
+            <button id="connect">Connect</button>
+        </div>
+        <div>
+            <button disabled id="call_start">Start Call</button>
+        </div>
+        <div>
+            <video id="local_video" autoplay muted></video>
+            <video id="remote_video" autoplay muted></video>
+        </div>
+        <div>
+    </body>
+    <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+    <script>
+        var peerconnection = null;
+        var isCaller = false;
+        var datachannel = null;
+
+        var username = document.getElementById("username");
+        var messageInput = document.getElementById("message");
+        var callButton = document.getElementById("call_start");
+        var messages = document.getElementById("messages");
+        var testWS = null;
+
+        var sendMsg = function (target, msg) {
+            msg["username"] = username.value;
+            msg["target"] = target;
+            console.log(msg.target);
+            console.log(JSON.stringify(msg));
+            testWS.send(JSON.stringify(msg));
+        }
+
+        $("#connect").click(function () {
+            if (!username.value) {
+                alert("ERROR: Username must not be null");
+                return;
+            }
+
+            $("#connect").attr("disabled", true);
+            testWS = new WebSocket("ws://localhost:5000/echo");
+            testWS.onopen = function (event) {
+                console.log("Hey cool, websocket open");
+                sendMsg("client", {"type": "client_hello"});
+                $("#call_start").attr("disabled", false);
+            };
+
+            testWS.onmessage = function (event) {
+                console.log("Hey cool, a message!", event.data);
+                var msg = JSON.parse(event.data);
+
+                switch (msg.type) {
+                    case "msg":
+                        newMsg = document.createElement("div");
+                        newMsg.innerHTML = `<strong>${msg.username}</strong> ${msg.msg}`;
+                        messages.prepend(newMsg);
+
+                        break;
+
+                    case "offer":
+                        console.log("answering a call");
+                        callButton.disabled = true;
+
+                        createPeerConnection();
+                        var desc = new RTCSessionDescription(msg);
+                        peerconnection.setRemoteDescription(desc)
+                        .then(function () {
+                            return peerconnection.createAnswer();
+                        })
+                        .then(function (answer) {
+                            return peerconnection.setLocalDescription(answer);
+                        })
+                        .then(function () {
+                            sendMsg("client", {
+                                "type": peerconnection.localDescription.type,
+                                "sdp": peerconnection.localDescription.sdp
+                            });
+                        })
+                        .catch(reportError);
+
+                        break;
+
+                    case "answer":
+                        console.log("Received an answer to my call");
+
+                        peerconnection.setRemoteDescription(msg)
+                        .catch(reportError);
+
+                        break;
+
+                    case "ice-candidate":
+                        console.log("Got a candidate");
+
+                        if (msg.candidate == null) {
+                            console.log("Last candidate received");
+                        } else {
+                            var candidate = new RTCIceCandidate(msg.candidate);
+                            peerconnection.addIceCandidate(candidate)
+                            .catch(reportError);
+                        }
+
+                        break;
+
+                    default:
+                        console.log("Ignoring unknown message type: ", msg);
+                        break;
+                }
+            };
+        });
+
+        callButton.onclick = function () {
+            callButton.disabled = true;
+            username.disabled = true;
+            isCaller = true;
+            createPeerConnection();
+        }
+
+        function reportError(event) {
+            console.log("Error:", event);
+        }
+
+        function createPeerConnection() {
+            peerconnection = new RTCPeerConnection({
+                iceServers: [
+                    {
+                        urls: "stun:stun.l.google.com:19302"
+                    }
+                ]
+            });
+
+            peerconnection.onicecandidate = function (event) {
+                console.log("onicecandidate", event);
+                if (event.candidate == null) {
+                    console.log("Last candidate received");
+                } else {
+                    sendMsg("client", {
+                        type: "ice-candidate",
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            peerconnection.onicecandidateerror = function (event) {
+                console.log("onicecandidateerror", event);
+            };
+
+            peerconnection.onnegotiationneeded = function (event) {
+                console.log("onnegotiationneeded", event);
+            };
+
+            peerconnection.oniceconnectionstatechange = function (event) {
+                console.log("oniceconnectionstatechange", event);
+            };
+
+            peerconnection.onicegatheringstatechange = function (event) {
+                console.log("onicegatheringstatechange", event);
+            };
+
+            peerconnection.onsignalingstatechange = function (event) {
+                console.log("onsignalingstatechange", event);
+            };
+
+            peerconnection.ondatachannel = function (event) {
+                console.log("Hey cool a data channel: ", event);
+                datachannel = event.channel;
+                datachannel.onmessage = handleDataChannelMessage;
+            };
+
+            peerconnection.ontrack = function (event) {
+                console.log("Hey cool a mediastream: ", event);
+                document.getElementById("remote_video").srcObject = event.streams[0];
+            }
+
+            if (isCaller) {
+                navigator.mediaDevices.getUserMedia({audio: true, video: true})
+                .then(function(localStream) {
+                    document.getElementById("local_video").srcObject = localStream;
+                    localStream.getTracks().forEach(track => peerconnection.addTrack(track, localStream));
+                    
+                    peerconnection.createOffer().then(function(offer) {
+                        return peerconnection.setLocalDescription(offer);
+                    })
+                    .then(function() {
+                        sendMsg("client", {
+                            "type": peerconnection.localDescription.type,
+                            "sdp": peerconnection.localDescription.sdp
+                        });
+                    })
+                    .catch(reportError);
+                })
+                .catch(function (event) {
+                    console.log("Error doing media stuff: ", event);
+                });
+            }
+        };
+
+    </script>
+</html>
