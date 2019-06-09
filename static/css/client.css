@@ -1,0 +1,86 @@
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+.flex-padding {
+    flex-grow: 1;
+}
+
+#login-container {
+    z-index: 10;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+}
+
+#login-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+#login-form {
+    width: 300px;
+}
+
+
+#login-form form {
+    width: 100%;
+}
+
+#login-form .btn {
+    width: 100%;
+}
+
+.local-video-container {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.local-video-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+#local-video {
+    height: 320px;
+    width: 180px;
+    object-fit: cover;
+    overflow: hidden;
+}
+
+.remote-video-container {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+#remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.local-overflow-wrapper {
+    width: 200px;
+    height: 300px;
+    overflow: hidden;
+    margin: 20px;
+}

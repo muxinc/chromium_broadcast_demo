@@ -14,6 +14,10 @@ def echo_socket(ws):
     print("Hey cool a client")
     while not ws.closed:
         msgStr = ws.receive()
+        if msgStr is None:
+            print("User disconnected")
+            break
+
         print("Hey cool a message: ", msgStr)
         try:
             msg = json.loads(msgStr)
