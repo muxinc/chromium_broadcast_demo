@@ -14,6 +14,7 @@ def echo_socket(ws):
     print("Hey cool a client")
     while not ws.closed:
         msgStr = ws.receive()
+        print("Hey cool a message: ", msgStr)
         try:
             msg = json.loads(msgStr)
             if msg["type"] == "server_hello":

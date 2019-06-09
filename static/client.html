@@ -35,6 +35,7 @@
         var sendMsg = function (target, msg) {
             msg["username"] = username.value;
             msg["target"] = target;
+            msg["sender"] = isCaller ? "caller" : "answerer";
             console.log(msg.target);
             console.log(JSON.stringify(msg));
             testWS.send(JSON.stringify(msg));
@@ -59,27 +60,25 @@
                 var msg = JSON.parse(event.data);
 
                 switch (msg.type) {
-                    case "msg":
-                        newMsg = document.createElement("div");
-                        newMsg.innerHTML = `<strong>${msg.username}</strong> ${msg.msg}`;
-                        messages.prepend(newMsg);
-
-                        break;
-
                     case "offer":
                         console.log("answering a call");
                         callButton.disabled = true;
 
                         createPeerConnection();
+
                         var desc = new RTCSessionDescription(msg);
-                        peerconnection.setRemoteDescription(desc)
-                        .then(function () {
+                        peerconnection.setRemoteDescription(desc);
+
+                        navigator.mediaDevices.getUserMedia({audio: true, video: true})
+                        .then(function(localStream) {
+                            document.getElementById("local_video").srcObject = localStream;
+                            localStream.getTracks().forEach(track => peerconnection.addTrack(track, localStream));
                             return peerconnection.createAnswer();
                         })
-                        .then(function (answer) {
+                        .then(function(answer) {
                             return peerconnection.setLocalDescription(answer);
                         })
-                        .then(function () {
+                        .then(function() {
                             sendMsg("client", {
                                 "type": peerconnection.localDescription.type,
                                 "sdp": peerconnection.localDescription.sdp
