@@ -7,7 +7,7 @@ app = Flask(__name__)
 sockets = Sockets(app)
 
 clients = []
-server = None
+broadcaster = []
 
 @sockets.route('/echo')
 def echo_socket(ws):
@@ -22,12 +22,16 @@ def echo_socket(ws):
         try:
             msg = json.loads(msgStr)
             if msg["type"] == "server_hello":
-                server = ws
+                print("Registering server")
+                if len(broadcaster):
+                    broadcaster[0] = ws
+                else:
+                    broadcaster.append(ws)
             elif msg["type"] == "client_hello":
                 clients.append(ws)
             elif msg["target"] == "server":
-                if server is not None:
-                    server.send(msgStr)
+                if len(broadcaster):
+                    broadcaster[0].send(msgStr)
                 else:
                     print("Warning: received a client message without a server")
             else:
@@ -40,7 +44,8 @@ def echo_socket(ws):
         except Exception as ex:
             print("Error parsing message: ", msgStr, ex)
 
-    clients.remove(ws)
+    if ws in clients:
+        clients.remove(ws)
 
 @app.route('/<path:path>')
 def send_static(path):

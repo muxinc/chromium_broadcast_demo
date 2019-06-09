@@ -10,10 +10,10 @@
   <body>
     <div class="base-container">
       <div class="video-container">
-        <video src="bbb_360p.mp4" autoplay loop></video>
+        <video id="caller-video" autoplay loop></video>
       </div>
       <div class="video-container">
-        <video src="bbb_360p.mp4" autoplay loop></video>
+        <video id="answerer-video" autoplay loop></video>
       </div>
     </div>
     <div class="overlay-container">
@@ -62,6 +62,129 @@
           $("#intros-2").removeClass("fadeOutRight").addClass("fadeInRight");
         }, 3500);
       }, 8500);
+
+      function reportError(event) {
+        console.log("Error:", event);
+      }
+
+      var callerPeerconnection = null;
+      var answerPeerconnection = null;
+
+      var ws = new WebSocket("ws://localhost:5000/echo");
+
+      var sendMsg = function (target, msg) {
+          msg["sender"] = "server";
+          msg["target"] = target;
+          console.log(msg.target);
+          console.log(JSON.stringify(msg));
+          ws.send(JSON.stringify(msg));
+      };
+
+      ws.onopen = function (event) {
+        console.log("Hey cool, websocket is open");
+        sendMsg("", {"type": "server_hello"});
+      };
+
+      ws.onmessage = function (event) {
+        console.log("Hey cool, a message!", event.data);
+        var msg = JSON.parse(event.data);
+        curSender = msg.sender;
+
+        switch (msg.type) {
+          case "offer":
+            console.log("Accepting a call");
+            var desc = new RTCSessionDescription(msg);
+            if (curSender == "caller") {
+              createCallerPeerConnection();
+              callerPeerconnection.setRemoteDescription(desc)
+              .then(function () {
+                return callerPeerconnection.createAnswer();
+              })
+              .then(function (answer) {
+                return callerPeerconnection.setLocalDescription(answer);
+              })
+              .then(function() {
+                sendMsg("caller", {
+                  "type": callerPeerconnection.localDescription.type,
+                  "sdp": callerPeerconnection.localDescription.sdp
+                });
+              })
+              .catch(reportError);
+            } else if (curSender == "answerer") {
+              createAnswererPeerConnection();
+              answerPeerconnection.setRemoteDescription(desc)
+              .then(function () {
+                return answerPeerconnection.createAnswer();
+              })
+              .then(function (answer) {
+                return answerPeerconnection.setLocalDescription(answer);
+              })
+              .then(function() {
+                sendMsg("answerer", {
+                  "type": answerPeerconnection.localDescription.type,
+                  "sdp": answerPeerconnection.localDescription.sdp
+                });
+              })
+              .catch(reportError);
+            }
+            break;
+          case "ice-candidate":
+            if (msg.candidate == null) {
+              console.log("Last candidate received (and ignored)");
+            } else if (curSender == "caller") {
+              var candidate = new RTCIceCandidate(msg.candidate);
+              callerPeerconnection.addIceCandidate(candidate)
+              .catch(reportError);
+            }
+
+            break;
+        };
+      };
+
+      function createCallerPeerConnection() {
+        callerPeerconnection = new RTCPeerConnection({iceServers: [{urls: "stun:stun.l.google.com:19302"}]});
+
+        callerPeerconnection.onicecandidate = function (event) {
+          console.log("onicecandidate", event);
+          if (event.candidate == null) {
+            console.log("Last candidate received");
+          } else {
+            sendMsg("caller", {
+              type: "ice-candidate",
+              candidate: event.candidate
+            });
+          }
+        };
+
+        callerPeerconnection.ontrack = function (event) {
+          console.log("Hey cool a mediastream: ", event);
+          document.getElementById("caller-video").srcObject = event.streams[0];
+        }
+      };
+
+
+      function createAnswererPeerConnection() {
+        answerPeerconnection = new RTCPeerConnection({iceServers: [{urls: "stun:stun.l.google.com:19302"}]});
+
+        answerPeerconnection.onicecandidate = function (event) {
+          console.log("onicecandidate", event);
+          if (event.candidate == null) {
+            console.log("Last candidate received");
+          } else {
+            sendMsg("answerer", {
+              type: "ice-candidate",
+              candidate: event.candidate
+            });
+          }
+        };
+
+        answerPeerconnection.ontrack = function (event) {
+          console.log("Hey cool a mediastream: ", event);
+          document.getElementById("answerer-video").srcObject = event.streams[0];
+        }
+      };
+
+
     </script>
   </body>
 
