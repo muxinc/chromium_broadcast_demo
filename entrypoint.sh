@@ -14,7 +14,7 @@ XVFB_PID=$!
 sleep 1
 
 echo "Capturing with FFmpeg"
-ffmpeg -y -f x11grab -draw_mouse 0 -s 1280x720 -r 24 -i :1.0+0,0 -f pulse -ac 2 -i default -c:v libx264 -preset veryfast -threads 4 -crf 24 -maxrate 4000k -bufsize 4000k -keyint 120 -c:a aac -b:a 128k -f flv ${2} 2> /dev/null &
+ffmpeg -y -f x11grab -draw_mouse 0 -s 1280x720 -r 24 -i :1.0+0,0 -f pulse -ac 2 -i default -c:v libx264 -preset veryfast -threads 4 -crf 24 -maxrate 4000k -bufsize 4000k -force_key_frames 'expr:gte(t,n_forced*5)' -c:a aac -b:a 128k -f flv ${2} 2> /dev/null &
 FFMPEG_PID=$!
 
 echo "Launching Chromium"
