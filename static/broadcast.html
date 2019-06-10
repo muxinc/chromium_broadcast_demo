@@ -70,7 +70,7 @@
       var callerPeerconnection = null;
       var answerPeerconnection = null;
 
-      var ws = new WebSocket("ws://localhost:5000/echo");
+      var ws = new WebSocket("wss://1a8d49d9.ngrok.io/echo");
 
       var sendMsg = function (target, msg) {
           msg["sender"] = "server";
@@ -86,13 +86,13 @@
       };
 
       ws.onmessage = function (event) {
-        console.log("Hey cool, a message!", event.data);
         var msg = JSON.parse(event.data);
         curSender = msg.sender;
+        console.log("broadcaster received a message of type", event.data);
 
         switch (msg.type) {
           case "offer":
-            console.log("Accepting a call");
+            console.log("Accepting a call from", msg.sender);
             var desc = new RTCSessionDescription(msg);
             if (curSender == "caller") {
               createCallerPeerConnection();
@@ -131,10 +131,21 @@
           case "ice-candidate":
             if (msg.candidate == null) {
               console.log("Last candidate received (and ignored)");
-            } else if (curSender == "caller") {
-              var candidate = new RTCIceCandidate(msg.candidate);
+              break;
+            }
+
+            console.log("Applying ice candidate to sender", curSender);
+            
+            var candidate = new RTCIceCandidate(msg.candidate);
+
+            if (curSender == "caller") {
               callerPeerconnection.addIceCandidate(candidate)
               .catch(reportError);
+            } else if (curSender == "answerer") {
+              answerPeerconnection.addIceCandidate(candidate)
+              .catch(reportError);
+            } else {
+              console.log("Error: Ice candidate for unknown sender", curSender);
             }
 
             break;
@@ -158,7 +169,9 @@
 
         callerPeerconnection.ontrack = function (event) {
           console.log("Hey cool a mediastream: ", event);
-          document.getElementById("caller-video").srcObject = event.streams[0];
+          if (event.track.kind == "video") {
+              document.getElementById("caller-video").srcObject = event.streams[0];
+          }
         }
       };
 
@@ -180,7 +193,9 @@
 
         answerPeerconnection.ontrack = function (event) {
           console.log("Hey cool a mediastream: ", event);
-          document.getElementById("answerer-video").srcObject = event.streams[0];
+          if (event.track.kind == "video") {
+            document.getElementById("answerer-video").srcObject = event.streams[0];
+          }
         }
       };
 

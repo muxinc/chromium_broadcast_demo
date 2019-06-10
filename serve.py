@@ -11,14 +11,14 @@ broadcaster = []
 
 @sockets.route('/echo')
 def echo_socket(ws):
-    print("Hey cool a client")
+    print("Server received new client")
     while not ws.closed:
         msgStr = ws.receive()
         if msgStr is None:
             print("User disconnected")
             break
 
-        print("Hey cool a message: ", msgStr)
+        print("Received message: ", msgStr)
         try:
             msg = json.loads(msgStr)
             if msg["type"] == "server_hello":
