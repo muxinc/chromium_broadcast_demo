@@ -70,7 +70,7 @@
       var callerPeerconnection = null;
       var answerPeerconnection = null;
 
-      var ws = new WebSocket("wss://1a8d49d9.ngrok.io/echo");
+      var ws = new WebSocket("wss://" + window.location.host + "/echo");
 
       var sendMsg = function (target, msg) {
           msg["sender"] = "server";

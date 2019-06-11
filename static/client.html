@@ -77,7 +77,7 @@
 
             $("#username").attr("disabled", true);
             $("#connect").attr("disabled", true);
-            testWS = new WebSocket("wss://1a8d49d9.ngrok.io/echo");
+            testWS = new WebSocket("wss://" + window.location.host + "/echo");
             testWS.onopen = function (event) {
                 console.log("Hey cool, websocket open");
                 sendMsg("client", {"type": "client_hello"});
